@@ -19,7 +19,6 @@ def getAllStockList(url):
 
     soup = BeautifulSoup(html, 'html.parser')
     quotebody = soup.find("div",class_="quotebody")
-    # print(quotebody)
     uls = quotebody.find("ul")
     lis = uls.find_all("li")
     for li in lis:
@@ -29,16 +28,13 @@ def getAllStockList(url):
                 "股票名称":re.match("(.*?)\(",ch.string).group(1),
                 "链接": ch["href"]
             })
-
     print("----"*20)
-    print(resultList)
     for l in resultList:
         print(l)
-    # resultList.append(re.findall(r"[s][hz]\d{6}", href)[0])
 
     pass
 
-def parseDetailStockHtml(text):
+def parseDetailStockHtml        (text):
     bsoup = BeautifulSoup(text,"html.parser")
     sideContent = bsoup.find_all("div",class_="cont trade_info_cont")
     print(type(sideContent))
