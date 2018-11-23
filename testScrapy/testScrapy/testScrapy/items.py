@@ -10,5 +10,10 @@ import scrapy
 
 class TestscrapyItem(scrapy.Item):
     # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    downloadurl = scrapy.Field()
+    image_urls =  scrapy.Field()
+    images =  scrapy.Field()
+    name =  scrapy.Field()
+    image_paths = scrapy.Field()
+    keywd = scrapy.Field()
+
