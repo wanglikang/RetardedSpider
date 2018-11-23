@@ -23,13 +23,12 @@ from scrapy import signals
 
 logger = logging.getLogger(__name__)
 
-
+#当运行scrapy crawl spidername的时候，第一个进行运行的文件是这个，scrapy初始化此类Crawler来生成最开始的一个爬虫
 class Crawler(object):
 
     def __init__(self, spidercls, settings=None):
         if isinstance(settings, dict) or settings is None:
             settings = Settings(settings)
-
         self.spidercls = spidercls
         self.settings = settings.copy()
         self.spidercls.update_settings(self.settings)
