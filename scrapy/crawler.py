@@ -144,6 +144,7 @@ class CrawlerRunner(object):
                       category=ScrapyDeprecationWarning, stacklevel=2)
         return self.spider_loader
 
+#在这里进行crawl的创建
     def crawl(self, crawler_or_spidercls, *args, **kwargs):
         """
         Run a crawler with the provided arguments.
@@ -288,6 +289,7 @@ class CrawlerProcess(CrawlerRunner):
         tp.adjustPoolsize(maxthreads=self.settings.getint('REACTOR_THREADPOOL_MAXSIZE'))
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run(installSignalHandlers=False)  # blocking call
+
 
     def _get_dns_resolver(self):
         if self.settings.getbool('DNSCACHE_ENABLED'):

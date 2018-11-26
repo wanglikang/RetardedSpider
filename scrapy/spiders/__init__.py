@@ -15,14 +15,19 @@ from scrapy.exceptions import ScrapyDeprecationWarning
 from scrapy.utils.deprecate import method_is_overridden
 
 
+#此类继承了object_ref类，可以被scrapy框架记录生命状态
+#爬虫类的基类，所有的spider类都要继承自这个类
 class Spider(object_ref):
     """Base class for scrapy spiders. All spiders must inherit from this
     class.
     """
 
+#定义爬虫的名字（标识）
     name = None
+#个性化设置
     custom_settings = None
 
+#初始化，给spider实例添加name和start_urls属性
     def __init__(self, name=None, **kwargs):
         if name is not None:
             self.name = name
@@ -32,6 +37,7 @@ class Spider(object_ref):
         if not hasattr(self, 'start_urls'):
             self.start_urls = []
 
+#属性变量
     @property
     def logger(self):
         logger = logging.getLogger(self.name)
@@ -46,6 +52,10 @@ class Spider(object_ref):
         """
         self.logger.log(level, message, **kw)
 
+    """
+    @classmethod 相当于是类函数（java中的static方法），不需要被实例化就可以被调用
+    但是第一个参数cls表示自身类
+    """
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = cls(*args, **kwargs)
@@ -60,12 +70,15 @@ class Spider(object_ref):
         assert not hasattr(self, 'crawler'), "Spider already bounded to a " \
                                              "crawler"
         self._set_crawler(crawler)
+#以上两个方法的作用都是用来设置本爬虫中的crawl，都是对_set_crawler的包装
 
     def _set_crawler(self, crawler):
         self.crawler = crawler
         self.settings = crawler.settings
         crawler.signals.connect(self.close, signals.spider_closed)
+        #建立蜘蛛crawler和本爬虫的信号联系
 
+#对本爬虫中的start_urls中的地址进行爬取，生成Request对象，交给框架进行调度处理
     def start_requests(self):
         cls = self.__class__
         if method_is_overridden(cls, Spider, 'make_requests_from_url'):
@@ -86,6 +99,7 @@ class Spider(object_ref):
         """ This method is deprecated. """
         return Request(url, dont_filter=True)
 
+#对框架调度处理之后相应的respponse请求进行处理，在子类中必须进行实现
     def parse(self, response):
         raise NotImplementedError('{}.parse callback is not defined'.format(self.__class__.__name__))
 
@@ -97,12 +111,14 @@ class Spider(object_ref):
     def handles_request(cls, request):
         return url_is_from_spider(request.url, cls)
 
+#静态类方法，
     @staticmethod
     def close(spider, reason):
         closed = getattr(spider, 'closed', None)
         if callable(closed):
             return closed(reason)
 
+#类似java的toString方法
     def __str__(self):
         return "<%s %r at 0x%0x>" % (type(self).__name__, self.name, id(self))
 
@@ -111,7 +127,7 @@ class Spider(object_ref):
 
 BaseSpider = create_deprecated_class('BaseSpider', Spider)
 
-
+#废弃的类
 class ObsoleteClass(object):
     def __init__(self, message):
         self.message = message
@@ -119,6 +135,7 @@ class ObsoleteClass(object):
     def __getattr__(self, name):
         raise AttributeError(self.message)
 
+#继承自废弃的spider类
 spiders = ObsoleteClass(
     '"from scrapy.spider import spiders" no longer works - use '
     '"from scrapy.spiderloader import SpiderLoader" and instantiate '

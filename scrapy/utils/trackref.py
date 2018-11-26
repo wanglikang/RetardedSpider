@@ -20,7 +20,7 @@ import six
 NoneType = type(None)
 live_refs = defaultdict(weakref.WeakKeyDictionary)
 
-
+#scrapy中可以被记录状态的类的基类，已知的子类有spider类
 class object_ref(object):
     """Inherit from this class (instead of object) to a keep a record of live
     instances"""
@@ -32,7 +32,7 @@ class object_ref(object):
         live_refs[cls][obj] = time()
         return obj
 
-
+#下面是一些工具方法
 def format_live_refs(ignore=NoneType):
     """Return a tabular representation of tracked objects"""
     s = "Live References\n\n"
