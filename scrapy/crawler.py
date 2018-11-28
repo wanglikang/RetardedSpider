@@ -22,8 +22,18 @@ from scrapy.utils.log import (
 from scrapy import signals
 
 logger = logging.getLogger(__name__)
+"""
+当运行命令:scrapy crawl spidername的时候，第一个进行运行的文件是这个，
+目前来看，主要是被scrapy.commands.crawl中的run调用:
+    self.crawler_process.crawl(spname, **opts.spargs)
+    self.crawler_process.start()
+"""
 
-#当运行scrapy crawl spidername的时候，第一个进行运行的文件是这个，scrapy初始化此类Crawler来生成最开始的一个爬虫
+
+
+"""
+scrapy初始化此类Crawler来生成最开始的一个爬虫,以及创建引擎ExecutionEngine进行调度
+"""
 class Crawler(object):
 
     def __init__(self, spidercls, settings=None):
@@ -69,12 +79,19 @@ class Crawler(object):
             self._spiders = _get_spider_loader(self.settings.frozencopy())
         return self._spiders
 
+    """
+    @defer.inlineCallbacks 是twisted的一个装饰器类，用于简化deferred的操作。
+    将生成器变成了一系列的回调函数来执行。，方便编程
+    
+    包括了创建爬虫，创建引擎，开启引擎等操作。
+    """
     @defer.inlineCallbacks
     def crawl(self, *args, **kwargs):
         assert not self.crawling, "Crawling already taking place"
         self.crawling = True
 
         try:
+            #根据命令行的参数生成spider
             self.spider = self._create_spider(*args, **kwargs)
             self.engine = self._create_engine()
             start_requests = iter(self.spider.start_requests())
@@ -100,6 +117,7 @@ class Crawler(object):
     def _create_spider(self, *args, **kwargs):
         return self.spidercls.from_crawler(self, *args, **kwargs)
 
+    #创建执行引擎
     def _create_engine(self):
         return ExecutionEngine(self, lambda _: self.stop())
 
@@ -144,7 +162,7 @@ class CrawlerRunner(object):
                       category=ScrapyDeprecationWarning, stacklevel=2)
         return self.spider_loader
 
-#在这里进行crawl的创建
+    # 在这里进行crawl的创建，被scrapy.commands.crawl下的run调用
     def crawl(self, crawler_or_spidercls, *args, **kwargs):
         """
         Run a crawler with the provided arguments.
@@ -221,7 +239,14 @@ class CrawlerRunner(object):
         while self._active:
             yield defer.DeferredList(self._active)
 
-
+"""
+注释翻译：
+    这个类是用来同时运行多个scrapy crawlers的
+    通过继承自CrawlerRunner，
+    可以开启twisterd的reactor、处理shutdown信号（例如：键盘中断ctrl+C等）。
+    
+    通过scrapy.settings.Settings参数来实例化
+"""
 class CrawlerProcess(CrawlerRunner):
     """
     A class to run multiple scrapy crawlers in a process simultaneously.
@@ -265,6 +290,12 @@ class CrawlerProcess(CrawlerRunner):
                     {'signame': signame})
         reactor.callFromThread(self._stop_reactor)
 
+    """
+     在这里开始执行cralwe的运行，被scrapy.commands.crawl下的run调用
+     开始twisted的reactor框架调度，调节线程池的大小到REACTOR_THREADPOOL_MAXSIZE
+     并且根据setting中的配置安装一个DNS的缓存
+     并开始reacter的run
+    """
     def start(self, stop_after_crawl=True):
         """
         This method starts a Twisted `reactor`_, adjusts its pool size to
@@ -289,6 +320,8 @@ class CrawlerProcess(CrawlerRunner):
         tp.adjustPoolsize(maxthreads=self.settings.getint('REACTOR_THREADPOOL_MAXSIZE'))
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run(installSignalHandlers=False)  # blocking call
+        #阻塞调用
+
 
 
     def _get_dns_resolver(self):

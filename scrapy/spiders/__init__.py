@@ -14,15 +14,18 @@ from scrapy.utils.deprecate import create_deprecated_class
 from scrapy.exceptions import ScrapyDeprecationWarning
 from scrapy.utils.deprecate import method_is_overridden
 
-
-#此类继承了object_ref类，可以被scrapy框架记录生命状态
-#爬虫类的基类，所有的spider类都要继承自这个类
+"""
+此类继承了object_ref类，可以被scrapy框架记录生命状态
+爬虫类的基类，所有的spider类都要继承自这个类
+spider的英文意思是蜘蛛，crawl的英语意思是爬虫
+所以可以理解为此类是一个具有爬虫功能的蜘蛛
+"""
 class Spider(object_ref):
     """Base class for scrapy spiders. All spiders must inherit from this
     class.
     """
 
-#定义爬虫的名字（标识）
+#定义蜘蛛的名字（标识）
     name = None
 #个性化设置
     custom_settings = None
@@ -70,15 +73,15 @@ class Spider(object_ref):
         assert not hasattr(self, 'crawler'), "Spider already bounded to a " \
                                              "crawler"
         self._set_crawler(crawler)
-#以上两个方法的作用都是用来设置本爬虫中的crawl，都是对_set_crawler的包装
+#以上两个方法的作用都是用来设置本蜘蛛中的爬虫crawl，都是对_set_crawler的包装
 
     def _set_crawler(self, crawler):
         self.crawler = crawler
         self.settings = crawler.settings
         crawler.signals.connect(self.close, signals.spider_closed)
-        #建立蜘蛛crawler和本爬虫的信号联系
+        #建立爬虫crawler和本蜘蛛的信号联系
 
-#对本爬虫中的start_urls中的地址进行爬取，生成Request对象，交给框架进行调度处理
+#对本蜘蛛中的start_urls中的地址进行爬取，生成Request对象，交给框架进行调度处理
     def start_requests(self):
         cls = self.__class__
         if method_is_overridden(cls, Spider, 'make_requests_from_url'):
@@ -124,10 +127,9 @@ class Spider(object_ref):
 
     __repr__ = __str__
 
-
+#兼容以前的废弃类BaseSpider
 BaseSpider = create_deprecated_class('BaseSpider', Spider)
 
-#废弃的类
 class ObsoleteClass(object):
     def __init__(self, message):
         self.message = message
@@ -135,7 +137,6 @@ class ObsoleteClass(object):
     def __getattr__(self, name):
         raise AttributeError(self.message)
 
-#继承自废弃的spider类
 spiders = ObsoleteClass(
     '"from scrapy.spider import spiders" no longer works - use '
     '"from scrapy.spiderloader import SpiderLoader" and instantiate '

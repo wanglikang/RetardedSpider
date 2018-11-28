@@ -137,6 +137,7 @@ def execute(argv=None, settings=None):
         _print_unknown_command(settings, cmdname, inproject)
         sys.exit(2)
 
+    #cmds中有scrapy.commands目录下所有命令
     cmd = cmds[cmdname]
     parser.usage = "scrapy %s %s" % (cmdname, cmd.syntax())
     parser.description = cmd.long_desc()
@@ -146,7 +147,9 @@ def execute(argv=None, settings=None):
     opts, args = parser.parse_args(args=argv[1:])
     _run_print_help(parser, cmd.process_options, args, opts)
 
+    # 真正执行CrawlerProcess的入口在这里
     cmd.crawler_process = CrawlerProcess(settings)
+    #运行CrawlerProcess
     _run_print_help(parser, _run_command, cmd, args, opts)
     sys.exit(cmd.exitcode)
 
@@ -154,7 +157,9 @@ def _run_command(cmd, args, opts):
     if opts.profile:
         _run_command_profiled(cmd, args, opts)
     else:
+        #执行了这里的代码
         cmd.run(args, opts)
+
 
 def _run_command_profiled(cmd, args, opts):
     if opts.profile:

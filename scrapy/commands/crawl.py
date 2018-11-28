@@ -47,6 +47,7 @@ class Command(ScrapyCommand):
                                                                   tuple(valid_output_formats)))
             self.settings.set('FEED_FORMAT', opts.output_format, priority='cmdline')
 
+    #在这里才调用CrawlerProcess的start方法开始运行
     def run(self, args, opts):
         if len(args) < 1:
             raise UsageError()

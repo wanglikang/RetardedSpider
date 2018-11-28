@@ -52,7 +52,9 @@ class Slot(object):
                     self.heartbeat.stop()
             self.closing.callback(None)
 
-
+"""
+最重要的执行引擎类
+"""
 class ExecutionEngine(object):
 
     def __init__(self, crawler, spider_closed_callback):
@@ -249,6 +251,11 @@ class ExecutionEngine(object):
         dwld.addBoth(_on_complete)
         return dwld
 
+    """
+### 被scrapy.crawler.crawl调用
+    开启爬虫系统
+    创建调度器并开启，
+    """
     @defer.inlineCallbacks
     def open_spider(self, spider, start_requests=(), close_if_idle=True):
         assert self.has_capacity(), "No free spider slot when opening %r" % \
