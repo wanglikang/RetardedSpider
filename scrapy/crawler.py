@@ -269,13 +269,13 @@ class CrawlerProcess(CrawlerRunner):
     accordingly) unless writing scripts that manually handle the crawling
     process. See :ref:`run-from-script` for an example.
     """
-
+    #初始化，设置关闭信号的钩子、配置logger、打印scrapy的setting信息
     def __init__(self, settings=None, install_root_handler=True):
         super(CrawlerProcess, self).__init__(settings)
         install_shutdown_handlers(self._signal_shutdown)
         configure_logging(self.settings, install_root_handler)
         log_scrapy_info(self.settings)
-
+    #继续设置关闭信号的钩子
     def _signal_shutdown(self, signum, _):
         install_shutdown_handlers(self._signal_kill)
         signame = signal_names[signum]

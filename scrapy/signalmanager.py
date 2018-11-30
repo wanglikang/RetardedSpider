@@ -34,6 +34,7 @@ class SignalManager(object):
         kwargs.setdefault('sender', self.sender)
         return dispatcher.disconnect(receiver, signal, **kwargs)
 
+#发送一个信号，并且捕捉异常，并打印它们
     def send_catch_log(self, signal, **kwargs):
         """
         Send a signal, catch exceptions and log them.

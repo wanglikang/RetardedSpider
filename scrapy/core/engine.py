@@ -145,7 +145,7 @@ class ExecutionEngine(object):
             or slot.closing \
             or self.downloader.needs_backout() \
             or self.scraper.slot.needs_backout()
-
+#处理从调度器中回去的下一个request
     def _next_request_from_scheduler(self, spider):
         slot = self.slot
         request = slot.scheduler.next_request()
@@ -219,16 +219,29 @@ class ExecutionEngine(object):
             self.signals.send_catch_log(signal=signals.request_dropped,
                                         request=request, spider=spider)
 
+    """
+    根据请求进行下载，其实是调用_download进行下载
+    并且在下载完成之后，通过reactor异步调度_downloaded函数。
+    """
     def download(self, request, spider):
         d = self._download(request, spider)
         d.addBoth(self._downloaded, self.slot, request, spider)
         return d
 
+    """
+    在下载完成之后，从slot中将要对应的request移除，然后在判断response的类型：
+        如果是Request，则继续进行下载；若是Response，则直接返回
+    """
     def _downloaded(self, response, slot, request, spider):
         slot.remove_request(request)
-        return self.download(response, spider) \
-                if isinstance(response, Request) else response
+        return self.download(response, spider) if isinstance(response, Request) else response
 
+    """
+    将下载的任务由下载器downloader进行下载的操作
+    并添加了两个回调函数：
+        在下载完毕complete的时候
+        在下载成功success的时候
+    """
     def _download(self, request, spider):
         slot = self.slot
         slot.add_request(request)
@@ -238,8 +251,7 @@ class ExecutionEngine(object):
                 response.request = request # tie request to response received
                 logkws = self.logformatter.crawled(request, response, spider)
                 logger.log(*logformatter_adapter(logkws), extra={'spider': spider})
-                self.signals.send_catch_log(signal=signals.response_received, \
-                    response=response, request=request, spider=spider)
+                self.signals.send_catch_log(signal=signals.response_received, response=response, request=request, spider=spider)
             return response
 
         def _on_complete(_):
@@ -268,12 +280,18 @@ class ExecutionEngine(object):
         self.slot = slot
         self.spider = spider
         yield scheduler.open(spider)
-        yield self.scraper.open_spider(spider)
+        yield self.scraper.open_spider0(spider)
         self.crawler.stats.open_spider(spider)
         yield self.signals.send_catch_log_deferred(signals.spider_opened, spider=spider)
         slot.nextcall.schedule()
         slot.heartbeat.start(5)
 
+    """ 
+    当调度器空闲（没有需要被下载或调度的page）的时候调用。
+    可以被多次调用。
+    如果某些extension引起了DontCloseSpider异常（在spider_idle 信号的处理器中），spider就不会关闭，直到下一个循环。
+    并且这个方法会保证至少被执行一次
+    """
     def _spider_idle(self, spider):
         """Called when a spider gets idle. This function is called when there
         are no remaining pages to download or schedule. It can be called
@@ -282,15 +300,19 @@ class ExecutionEngine(object):
         next loop and this function is guaranteed to be called (at least) once
         again for this spider.
         """
-        res = self.signals.send_catch_log(signal=signals.spider_idle, \
-            spider=spider, dont_log=DontCloseSpider)
-        if any(isinstance(x, Failure) and isinstance(x.value, DontCloseSpider) \
-                for _, x in res):
+        res = self.signals.send_catch_log(signal=signals.spider_idle, spider=spider, dont_log=DontCloseSpider)
+        if any(isinstance(x, Failure) and isinstance(x.value, DontCloseSpider) for _, x in res):
             return
 
         if self.spider_is_idle(spider):
             self.close_spider(spider, reason='finished')
 
+    """
+    关闭爬虫（引擎）
+    发送信息：关闭下载器、使用scrapyer关闭爬虫spider、关闭调度器
+        发送关闭日志、关闭scawler关闭爬虫的信息、打印日志、
+        重设当前的slot为空、重设当前的spider为空等
+    """
     def close_spider(self, spider, reason='cancelled'):
         """Close (cancel) spider and clear all its outstanding requests"""
 

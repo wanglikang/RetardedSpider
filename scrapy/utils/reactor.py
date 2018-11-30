@@ -16,7 +16,7 @@ def listen_tcp(portrange, host, factory):
             if x == portrange[1]:
                 raise
 
-
+#一个可以在稍后被仅被调用一次的函数
 class CallLaterOnce(object):
     """Schedule a function to be called in the next reactor loop, but only if
     it hasn't been already scheduled since the last time it ran.
