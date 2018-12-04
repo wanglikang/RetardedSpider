@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 """
 scrapy初始化此类Crawler来生成最开始的一个爬虫,以及创建引擎ExecutionEngine进行调度
+一个spider对应一个Crawler
 """
 class Crawler(object):
 
@@ -82,6 +83,7 @@ class Crawler(object):
     """
     @defer.inlineCallbacks 是twisted的一个装饰器类，用于简化deferred的操作。
     将生成器变成了一系列的回调函数来执行。，方便编程
+    其他解释：使用了Twisted的defer.inlineCallbacks装饰器，表明如果函数中有地方需要阻塞，则不会阻塞整个总流程。
     
     包括了创建爬虫，创建引擎，开启引擎等操作。
     """
@@ -315,11 +317,11 @@ class CrawlerProcess(CrawlerRunner):
                 return
             d.addBoth(self._stop_reactor)
 
-        reactor.installResolver(self._get_dns_resolver())
-        tp = reactor.getThreadPool()
-        tp.adjustPoolsize(maxthreads=self.settings.getint('REACTOR_THREADPOOL_MAXSIZE'))
+        reactor.installResolver(self._get_dns_resolver())#安装一个DNS缓存，应该是在进行下载的时候不用每次都去请求DNS操作，加快爬取速度
+        tp = reactor.getThreadPool()#获取reactor的线程池，
+        tp.adjustPoolsize(maxthreads=self.settings.getint('REACTOR_THREADPOOL_MAXSIZE'))#调节线程池的大小
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
-        reactor.run(installSignalHandlers=False)  # blocking call
+        reactor.run(installSignalHandlers=False)  # blocking call，启动reactor，整个爬虫异步程序开始运作
         #阻塞调用
 
 

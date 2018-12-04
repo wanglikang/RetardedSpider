@@ -20,7 +20,12 @@ from scrapy.utils.log import logformatter_adapter, failure_to_exc_info
 
 logger = logging.getLogger(__name__)
 
-
+"""
+执行引擎使用的slot，
+作用是使用Twisted的主循环类不断的调度引擎的_next_request方法
+（在引擎的open_spider方法中被设置）
+此外，slot还有跟踪正在下载的request的功能
+"""
 class Slot(object):
 
     def __init__(self, start_requests, close_if_idle, nextcall, scheduler):
@@ -60,16 +65,16 @@ class ExecutionEngine(object):
     def __init__(self, crawler, spider_closed_callback):
         self.crawler = crawler
         self.settings = crawler.settings
-        self.signals = crawler.signals
+        self.signals = crawler.signals#使用crawler的信号管理器
         self.logformatter = crawler.logformatter
         self.slot = None
         self.spider = None
         self.running = False
         self.paused = False
-        self.scheduler_cls = load_object(self.settings['SCHEDULER'])
-        downloader_cls = load_object(self.settings['DOWNLOADER'])
+        self.scheduler_cls = load_object(self.settings['SCHEDULER'])#根据配置的调度器类来生成对应的对象
+        downloader_cls = load_object(self.settings['DOWNLOADER'])#根据配置的下载器类来生成对应的类
         self.downloader = downloader_cls(crawler)
-        self.scraper = Scraper(crawler)
+        self.scraper = Scraper(crawler)#生成一个刮取器
         self._spider_closed_callback = spider_closed_callback
 
     @defer.inlineCallbacks
@@ -112,6 +117,9 @@ class ExecutionEngine(object):
         """Resume the execution engine"""
         self.paused = False
 
+    """
+    主要在reactor中的heartbeat中被定时调用（在slot中设置），不过也可以被代码主动调用
+    """
     def _next_request(self, spider):
         slot = self.slot
         if not slot:
@@ -119,7 +127,7 @@ class ExecutionEngine(object):
 
         if self.paused:
             return
-
+        #此处应该是通过调度器异步的获取待处理的request
         while not self._needs_backout(spider):
             if not self._next_request_from_scheduler(spider):
                 break
@@ -139,13 +147,20 @@ class ExecutionEngine(object):
         if self.spider_is_idle(spider) and slot.close_if_idle:
             self._spider_idle(spider)
 
+    """
+    判断当前引擎的状态是不是异常，需不需要回退（backout）
+    """
     def _needs_backout(self, spider):
         slot = self.slot
         return not self.running \
             or slot.closing \
             or self.downloader.needs_backout() \
             or self.scraper.slot.needs_backout()
-#处理从调度器中回去的下一个request
+
+    """
+    从调度器中请求下一个request，如果有request待处理，
+    那么就对这个request进行下载处理，并对下载的操作添加一下回调函数
+    """
     def _next_request_from_scheduler(self, spider):
         slot = self.slot
         request = slot.scheduler.next_request()
@@ -166,6 +181,9 @@ class ExecutionEngine(object):
                                            extra={'spider': spider}))
         return d
 
+    """
+    对下载器的结果输出进行的异步处理
+    """
     def _handle_downloader_output(self, response, request, spider):
         assert isinstance(response, (Request, Response, Failure)), response
         # downloader middleware can return requests (for example, redirects)
@@ -206,12 +224,18 @@ class ExecutionEngine(object):
         """Does the engine have capacity to handle more spiders"""
         return not bool(self.slot)
 
+    """
+    调用schedule请求slot处理request，并且显式通知slot进行处理
+    """
     def crawl(self, request, spider):
         assert spider in self.open_spiders, \
             "Spider %r not opened when crawling: %s" % (spider.name, request)
         self.schedule(request, spider)
         self.slot.nextcall.schedule()
 
+    """
+    通过slot将request入队，等待被reactor处理，
+    """
     def schedule(self, request, spider):
         self.signals.send_catch_log(signal=signals.request_scheduled,
                 request=request, spider=spider)
@@ -254,6 +278,9 @@ class ExecutionEngine(object):
                 self.signals.send_catch_log(signal=signals.response_received, response=response, request=request, spider=spider)
             return response
 
+        """
+        在下载完成的时候显式调用slot进行调度处理
+        """
         def _on_complete(_):
             slot.nextcall.schedule()
             return _
@@ -264,7 +291,7 @@ class ExecutionEngine(object):
         return dwld
 
     """
-### 被scrapy.crawler.crawl调用
+    ### 被scrapy.crawler.crawl调用
     开启爬虫系统
     创建调度器并开启，
     """
@@ -287,7 +314,7 @@ class ExecutionEngine(object):
         slot.heartbeat.start(5)
 
     """ 
-    当调度器空闲（没有需要被下载或调度的page）的时候调用。
+    当调度器空闲的时候调用（在_next_request中判断）。
     可以被多次调用。
     如果某些extension引起了DontCloseSpider异常（在spider_idle 信号的处理器中），spider就不会关闭，直到下一个循环。
     并且这个方法会保证至少被执行一次

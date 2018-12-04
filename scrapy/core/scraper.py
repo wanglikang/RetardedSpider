@@ -61,7 +61,9 @@ class Slot(object):
     def needs_backout(self):
         return self.active_size > self.max_active_size
 
-
+"""
+Scrapyer类的主要功能是对response进行信息抽取
+"""
 class Scraper(object):
 
     def __init__(self, crawler):
@@ -96,6 +98,10 @@ class Scraper(object):
         if slot.closing and slot.is_idle():
             slot.closing.callback(spider)
 
+    """
+    将response和request入队，，
+    优先调用request的callback,如果没有则调用spider的parse方法。
+    """
     def enqueue_scrape(self, response, request, spider):
         slot = self.slot
         dfd = slot.add_response_request(response, request)
@@ -104,6 +110,7 @@ class Scraper(object):
             self._check_if_closing(spider, slot)
             self._scrape_next(spider, slot)
             return _
+
         dfd.addBoth(finish_scraping)
         dfd.addErrback(
             lambda f: logger.error('Scraper bug processing %(request)s',
@@ -167,6 +174,9 @@ class Scraper(object):
             spider=spider
         )
 
+    """
+    调用_process_spidermw_output进行处理，并且是多个异步的对result进行处理
+    """
     def handle_spider_output(self, result, request, response, spider):
         if not result:
             return defer_succeed(None)
@@ -175,13 +185,17 @@ class Scraper(object):
             self._process_spidermw_output, request, response, spider)
         return dfd
 
+    """
+    对每个Request或Item进行处理，若是Request，则继续爬取
+    若是Item，则用slot中设置的item处理器进行异步处理
+    """
     def _process_spidermw_output(self, output, request, response, spider):
         """Process each Request/Item (given in the output parameter) returned
         from the given spider
         """
-        if isinstance(output, Request):
+        if isinstance(output, Request):#若是Request，则继续爬取
             self.crawler.engine.crawl(request=output, spider=spider)
-        elif isinstance(output, (BaseItem, dict)):
+        elif isinstance(output, (BaseItem, dict)):#若是Item，则用slot中设置的item处理器进行异步处理
             self.slot.itemproc_size += 1
             dfd = self.itemproc.process_item(output, spider)
             dfd.addBoth(self._itemproc_finished, output, response, spider)

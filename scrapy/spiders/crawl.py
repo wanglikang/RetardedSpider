@@ -48,36 +48,41 @@ class CrawlSpider(Spider):
     def __init__(self, *a, **kw):
         super(CrawlSpider, self).__init__(*a, **kw)
         self._compile_rules()
-
+    """
+    子类实现的对结果处理的方法。为简单的调用_parse_response
+    """
     def parse(self, response):
         return self._parse_response(response, self.parse_start_url, cb_kwargs={}, follow=True)
 
-    def parse_start_url(self, response):
-        return []
+    """
+      处理response，将会调用传入的回调函数以及回调函数的参数进行处理，
+      返回request或者处理结果产生的item
+      """
 
-    def process_results(self, response, results):
-        return results
+    def _parse_response(self, response, callback, cb_kwargs, follow=True):
+        if callback:
+            cb_res = callback(response, **cb_kwargs) or ()
+            cb_res = self.process_results(response, cb_res)
+            for requests_or_item in iterate_spider_output(cb_res):
+                yield requests_or_item
+
+        if follow and self._follow_links:#对request的子链接进行跟进处理，也就是根据设置的Rule进行处理
+            for request_or_item in self._requests_to_follow(response):
+                yield request_or_item
 
     """
-    生成request交给带调度器进行调度    
-    """
-    def _build_request(self, rule, link):
-        r = Request(url=link.url, callback=self._response_downloaded)
-        r.meta.update(rule=rule, link_text=link.text)
-        return r
+       对request的结果response进行follow爬取,被本类中的_parse_response函数调用
+       """
 
-    """
-    对request的结果response进行follow爬取,被本类中的_parse_response函数调用
-    """
     def _requests_to_follow(self, response):
         if not isinstance(response, HtmlResponse):
             return
         seen = set()
-        #对每个规则rule进行判断：
+        # 对每个规则rule进行判断：
         # 若匹配到了对应的规则，则使用规则中process_links函数进行处理，
         # 并将处理的结果交由rule中的proicess_request进行处理
         for n, rule in enumerate(self._rules):
-            #使用rule规则对response中的信息进行抽取，并且去重
+            # 使用rule规则对response中的信息进行抽取，并且去重
             links = [lnk for lnk in rule.link_extractor.extract_links(response)
                      if lnk not in seen]
             if links and rule.process_links:
@@ -87,24 +92,33 @@ class CrawlSpider(Spider):
                 r = self._build_request(n, link)
                 yield rule.process_request(r)
 
+
+    """
+    默认返回空列表，需要自定义实现，否则解析不出来啥东西
+    """
+    def parse_start_url(self, response):
+        return []
+
+    def process_results(self, response, results):
+        return results
+
+    """
+    生成request交给带调度器进行调度，
+    在Request中设置了回调函数_response_downloaded，也就是会先使用回调函数，在使用parse进行处理
+    """
+    def _build_request(self, rule, link):
+        r = Request(url=link.url, callback=self._response_downloaded)
+        r.meta.update(rule=rule, link_text=link.text)
+        return r
+
+    """
+    在response下载完毕后进行使用这个函数进行处理，内部也是调用_parse_response，
+    其实就是不断的使用Rule对爬取到的页面进行迭代处理
+    """
     def _response_downloaded(self, response):
         rule = self._rules[response.meta['rule']]
         return self._parse_response(response, rule.callback, rule.cb_kwargs, rule.follow)
 
-    """
-    处理response，将会调用传入的回调函数以及回调函数的参数进行处理，
-    返回request或者处理结果产生的item
-    """
-    def _parse_response(self, response, callback, cb_kwargs, follow=True):
-        if callback:
-            cb_res = callback(response, **cb_kwargs) or ()
-            cb_res = self.process_results(response, cb_res)
-            for requests_or_item in iterate_spider_output(cb_res):
-                yield requests_or_item
-
-        if follow and self._follow_links:
-            for request_or_item in self._requests_to_follow(response):
-                yield request_or_item
 
     """
     对规则Rule进行“编译”处理，即提取其中的各个callback、process_links、process_request属性
