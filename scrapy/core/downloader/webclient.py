@@ -10,7 +10,9 @@ from scrapy.utils.httpobj import urlparse_cached
 from scrapy.utils.python import to_bytes
 from scrapy.responsetypes import responsetypes
 
-
+"""
+使用了twisted的HttpClient进行真正的下载操作
+"""
 def _parsed_url_args(parsed):
     # Assume parsed is urlparse-d from Request.url,
     # which was passed via safe_url_string and is ascii-only.

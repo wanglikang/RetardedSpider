@@ -11,7 +11,9 @@ from scrapy.utils.conf import build_component_list
 
 def _isiterable(possible_iterator):
     return hasattr(possible_iterator, '__iter__')
-
+"""
+控制全部的spider中间件,
+"""
 class SpiderMiddlewareManager(MiddlewareManager):
 
     component_name = 'spider middleware'
@@ -20,6 +22,13 @@ class SpiderMiddlewareManager(MiddlewareManager):
     def _get_mwlist_from_settings(cls, settings):
         return build_component_list(settings.getwithbase('SPIDER_MIDDLEWARES'))
 
+    """
+    每个spider中间件可以重写4个方法,本spiderMiddlewareManager可以对它们进行管理
+    process_spider_input:对spiderd的输入进行处理
+    process_spider_output::对spider的输出进行处理
+    process_spider_exception:对spider的异常进行处理
+    process_start_requests:对最开始的request请求进行处理
+    """
     def _add_middleware(self, mw):
         super(SpiderMiddlewareManager, self)._add_middleware(mw)
         if hasattr(mw, 'process_spider_input'):

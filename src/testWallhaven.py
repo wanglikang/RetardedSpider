@@ -4,7 +4,7 @@ import re
 import os
 import _thread
 import threading
-from SpiderTool import *
+from SpiderTool.SpiderTool import SpiderTool_Dowdload,SpiderTool
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20100101 Firefox/23.0'}
 
 class myThread (threading.Thread):
@@ -40,7 +40,8 @@ page2 = int(input("页码结束页："))
 aaa = mainurl+"/search?q="+searchkey
 print(aaa)
 
-saveDir = r'C:/Users/WLK/Pictures/'+searchkey+'/'
+#saveDir = r'C:/Users/WLK/Pictures/'+searchkey+'/'
+saveDir = r'./download_/'+searchkey+'/'
 
 try:
     os.makedirs(saveDir)

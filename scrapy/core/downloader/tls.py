@@ -2,7 +2,9 @@ import logging
 from OpenSSL import SSL
 
 from scrapy import twisted_version
-
+"""
+TLS协议相关的部分,暂不做分析
+"""
 
 logger = logging.getLogger(__name__)
 
