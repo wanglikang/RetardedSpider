@@ -27,7 +27,7 @@ class CallLaterOnce(object):
         self._a = a
         self._kw = kw
         self._call = None
-
+    #在被调度的时候，通过reactor异步的被调用
     def schedule(self, delay=0):
         if self._call is None:
             self._call = reactor.callLater(delay, self)

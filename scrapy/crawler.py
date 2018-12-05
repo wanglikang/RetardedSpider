@@ -27,11 +27,8 @@ logger = logging.getLogger(__name__)
 目前来看，主要是被scrapy.commands.crawl中的run调用:
     self.crawler_process.crawl(spname, **opts.spargs)
     self.crawler_process.start()
-"""
+其中，关键方法crawl最后会调用ExecutionEngine的open_spider和start方法
 
-
-
-"""
 scrapy初始化此类Crawler来生成最开始的一个爬虫,以及创建引擎ExecutionEngine进行调度
 一个spider对应一个Crawler
 """
@@ -94,10 +91,10 @@ class Crawler(object):
 
         try:
             #根据命令行的参数生成spider
-            self.spider = self._create_spider(*args, **kwargs)
-            self.engine = self._create_engine()
-            start_requests = iter(self.spider.start_requests())
-            yield self.engine.open_spider(self.spider, start_requests)
+            self.spider = self._create_spider(*args, **kwargs)#生成spider
+            self.engine = self._create_engine()#生成引擎
+            start_requests = iter(self.spider.start_requests())#获得start_requests的迭代器
+            yield self.engine.open_spider(self.spider, start_requests)#开启spider，为爬取工作做准备
             yield defer.maybeDeferred(self.engine.start)
         except Exception:
             # In Python 2 reraising an exception after yield discards

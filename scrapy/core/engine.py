@@ -30,7 +30,7 @@ class Slot(object):
 
     def __init__(self, start_requests, close_if_idle, nextcall, scheduler):
         self.closing = False
-        self.inprogress = set() # requests in progress
+        self.inprogress = set() # requests in progress，用于跟踪正在进行的request请求
         self.start_requests = iter(start_requests)
         self.close_if_idle = close_if_idle
         self.nextcall = nextcall
@@ -118,6 +118,7 @@ class ExecutionEngine(object):
         self.paused = False
 
     """
+    被CallLaterOnce包装后被slot设置，
     主要在reactor中的heartbeat中被定时调用（在slot中设置），不过也可以被代码主动调用
     """
     def _next_request(self, spider):
@@ -302,12 +303,12 @@ class ExecutionEngine(object):
         logger.info("Spider opened", extra={'spider': spider})
         nextcall = CallLaterOnce(self._next_request, spider)
         scheduler = self.scheduler_cls.from_crawler(self.crawler)
-        start_requests = yield self.scraper.spidermw.process_start_requests(start_requests, spider)
+        start_requests = yield self.scraper.spidermw.process_start_requests(start_requests, spider)#先调用spider中间件进行处理
         slot = Slot(start_requests, close_if_idle, nextcall, scheduler)
         self.slot = slot
         self.spider = spider
-        yield scheduler.open(spider)
-        yield self.scraper.open_spider0(spider)
+        yield scheduler.open(spider)#开启调度器
+        yield self.scraper.open_spider(spider)
         self.crawler.stats.open_spider(spider)
         yield self.signals.send_catch_log_deferred(signals.spider_opened, spider=spider)
         slot.nextcall.schedule()
