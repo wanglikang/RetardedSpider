@@ -14,7 +14,7 @@ class MiddlewareManager(object):
 
     component_name = 'foo middleware'
 
-    def __init__(self, *middlewares):
+    def __init__(self, * middlewares):
         self.middlewares = middlewares
         self.methods = defaultdict(list)
         for mw in middlewares:
@@ -57,6 +57,9 @@ class MiddlewareManager(object):
     def from_crawler(cls, crawler):
         return cls.from_settings(crawler.settings, crawler)
 
+    """
+    
+    """
     def _add_middleware(self, mw):
         if hasattr(mw, 'open_spider'):
             self.methods['open_spider'].append(mw.open_spider)
