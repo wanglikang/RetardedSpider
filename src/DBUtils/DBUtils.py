@@ -36,14 +36,23 @@ def insertDataPoint(datapointid):
     cur = conn.cursor()
     sql1 = "INSERT INTO`" + db + "`.`datapointinfo` (`dataPointID`, `dataPointName`, `srcID`, `storeID`, `srcType`, `storeType`, `otherInfo`, `status`)" \
                                 " VALUES (%s, %s, %s, %s, %s,%s,%s,%s)"
+    records = []
+    records.append((str(datapointid), "测试数据点名称", str(datapointid), "3477", '9', '1', '{}', '1'))
 
     sql2 = "INSERT INTO`" + db + "`.`topicinfo` (`topicID`, `srcID`)" \
                                 " VALUES (\"test-topic-"+str(datapointid)+"\", "+str(datapointid)+")"
+    sql3 = "INSERT INTO`" + db + "`.`srcinfo` (`srcID`, `srcName`,`srcType`,`srcInfo`)" \
+                                 " VALUES (\"" + str(datapointid) + "\", " + str(datapointid) + ",8,\"infoinfo\")"
+    sql4 = "INSERT INTO`" + db + "`.`middlewareconfig` (`processID`, `topicID`,`brokerIDs`,`status`)" \
+                                 " VALUES ('16',"+str(datapointid)+",'112',0)"
+    sql5 = "INSERT INTO`" + db + "`.`clientconfig` (`processID`, `topicID`,`brokerIDs`,`status`,`brokerGroup`)" \
+                                 " VALUES ('16'," + str(datapointid) + ",'112',0,3)"
 
-    records = []
-    records.append((str(datapointid), "测试数据点名称", str(datapointid), "3477",  '9', '1', '{}', '6'))
     re = cur.executemany(sql1, records)
     re2 = cur.execute(sql2)
+    re3 = cur.execute(sql3)
+    re4 = cur.execute(sql4)
+    re5 = cur.execute(sql5)
     cur.close()
     conn.commit()
     conn.close()
@@ -67,20 +76,41 @@ def insertStreamingConfig(processID, taskID,timeWindow,interval ,status, N):
 
 
 def main():
-    starttaskid = 9999921
-    endtaskid = 9999930 #continuehour小时内，，每parMin分钟添加一批数据，每批数据batchRecord个task
+    starttaskid = 99999300
+    endtaskid = 99999400 #continuehour小时内，，每parMin分钟添加一批数据，每批数据batchRecord个task
     currtaskid = starttaskid
 
-    while currtaskid <= endtaskid:
+    while currtaskid < endtaskid:
         print(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(time.time())))
         insertDataPoint(currtaskid)
+        insertDataPoint(currtaskid+1)
         insertTaskinfo(currtaskid, currtaskid,
                        "/home/spark/IOT/desc/NBLabFlow_10551_admin.天津西站日照能量_62_desc-"+str(currtaskid)+".txt", 0, batchRecord)
+
         #不用自己写入streamingconfig，，，数据库会自动创建相应的行
         #insertStreamingConfig(7,currtaskid,1,60,60,batchRecord)
-        currtaskid += 1
-        #time.sleep(batchInterrval)
+        currtaskid += 2
+        # time.sleep(batchInterrval)
         time.sleep(1)
+def main2():
+    starttaskid = 99999500
+    endtaskid = 99999650 #continuehour小时内，，每parMin分钟添加一批数据，每批数据batchRecord个task
+    currtaskid = starttaskid
 
-main()
+    while currtaskid < endtaskid:
+        print(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(time.time())))
+        insertDataPoint(currtaskid)
+        insertDataPoint(currtaskid+1)
+        insertDataPoint(currtaskid + 2)
+        insertTaskinfo(currtaskid, currtaskid,
+                       "/home/spark/IOT/desc/NBLabFlow_11510_zhuduohui.dddddddd_16_desc-"+str(currtaskid)+".txt", 0, batchRecord)
+
+        #不用自己写入streamingconfig，，，数据库会自动创建相应的行
+        #insertStreamingConfig(7,currtaskid,1,60,60,batchRecord)
+        currtaskid += 3
+        # time.sleep(batchInterrval)
+        # time.sleep(1)
+
+main2()
+#insertDataPoint(407193)
 
