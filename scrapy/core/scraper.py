@@ -63,15 +63,20 @@ class Slot(object):
 
 """
 Scrapyer类的主要功能是对response进行信息抽取
+流程是:
+    对于下载下来的网页,先通过各个spider中间件的process_spider_input来依次处理,然后
+    调用request的callback会spider的parse
+    再然后一次调用spider中间件的process_spider_output
+    处理完毕之后此交给itempipeline进行处理
 """
 class Scraper(object):
 
     def __init__(self, crawler):
         self.slot = None
         self.spidermw = SpiderMiddlewareManager.from_crawler(crawler)
-        itemproc_cls = load_object(crawler.settings['ITEM_PROCESSOR'])
+        itemproc_cls = load_object(crawler.settings['ITEM_PROCESSOR'])#处理item的类,默认为ItemPipelineManager
         self.itemproc = itemproc_cls.from_crawler(crawler)
-        self.concurrent_items = crawler.settings.getint('CONCURRENT_ITEMS')
+        self.concurrent_items = crawler.settings.getint('CONCURRENT_ITEMS')# 用于控制同时处理item的数量
         self.crawler = crawler
         self.signals = crawler.signals
         self.logformatter = crawler.logformatter
@@ -146,7 +151,9 @@ class Scraper(object):
             dfd = self.call_spider(request_result, request, spider)
             return dfd.addErrback(
                 self._log_download_errors, request_result, request, spider)
-
+    """
+    对于response,如果定义了request的callback,则优先使用callback,否则调用spider的parse方法进行处理
+    """
     def call_spider(self, result, request, spider):
         result.request = request
         dfd = defer_result(result)

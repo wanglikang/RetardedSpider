@@ -167,6 +167,8 @@ class ExecutionEngine(object):
         request = slot.scheduler.next_request()
         if not request:
             return
+
+        # 调用下载器进行下载
         d = self._download(request, spider)
         d.addBoth(self._handle_downloader_output, request, spider)
         d.addErrback(lambda f: logger.info('Error while handling downloader output',
@@ -285,7 +287,7 @@ class ExecutionEngine(object):
         def _on_complete(_):
             slot.nextcall.schedule()
             return _
-
+        # 从下载器中获取下载的结果deferred
         dwld = self.downloader.fetch(request, spider)
         dwld.addCallbacks(_on_success)
         dwld.addBoth(_on_complete)

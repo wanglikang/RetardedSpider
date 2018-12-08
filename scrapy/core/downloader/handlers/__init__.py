@@ -56,6 +56,7 @@ class DownloadHandlers(object):
             self._handlers[scheme] = dh
         return self._handlers[scheme]
 
+    # 根据不同的协议调用不同的下载器进行下载
     def download_request(self, request, spider):
         scheme = urlparse_cached(request).scheme
         handler = self._get_handler(scheme)

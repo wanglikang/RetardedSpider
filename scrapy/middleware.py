@@ -8,12 +8,12 @@ from scrapy.utils.defer import process_parallel, process_chain, process_chain_bo
 
 logger = logging.getLogger(__name__)
 
-
+#中间价的总管理器
 class MiddlewareManager(object):
     """Base class for implementing middleware managers"""
 
     component_name = 'foo middleware'
-
+    # 遍历所有的中间件,并调用_add_middleware方法
     def __init__(self, * middlewares):
         self.middlewares = middlewares
         self.methods = defaultdict(list)
@@ -58,7 +58,7 @@ class MiddlewareManager(object):
         return cls.from_settings(crawler.settings, crawler)
 
     """
-    
+    就是向methods示例中添加方法:open_spider和close_spider
     """
     def _add_middleware(self, mw):
         if hasattr(mw, 'open_spider'):

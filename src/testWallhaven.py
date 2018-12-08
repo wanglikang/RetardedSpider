@@ -52,6 +52,7 @@ findDetailUrlThread = SpiderTool(r'<a.*?class="preview".*?href="(.*?)".*?>')
 findDetailUrlThread.start()
 findDownloadThread = SpiderTool_Dowdload(r'<img.*?id="wallpaper".*?src="(.*?)".*?>', saveDir)
 findDownloadThread.start()
+
 for i in range(page1,page2,1):
     findDetailUrlThread.addqueue(aaa+"&page="+str(i))
 

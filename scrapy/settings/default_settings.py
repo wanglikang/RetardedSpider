@@ -80,7 +80,7 @@ DOWNLOAD_MAXSIZE = 1024*1024*1024   # 1024m
 DOWNLOAD_WARNSIZE = 32*1024*1024    # 32m
 
 DOWNLOAD_FAIL_ON_DATALOSS = True
-
+# 默认的下载器是scrapy.core.downloader.Downloader
 DOWNLOADER = 'scrapy.core.downloader.Downloader'
 
 DOWNLOADER_HTTPCLIENTFACTORY = 'scrapy.core.downloader.webclient.ScrapyHTTPClientFactory'
@@ -89,7 +89,7 @@ DOWNLOADER_CLIENT_TLS_METHOD = 'TLS' # Use highest TLS/SSL protocol version supp
                                      # also allowing negotiation
 
 DOWNLOADER_MIDDLEWARES = {}
-
+# 默认的下载器中间件
 DOWNLOADER_MIDDLEWARES_BASE = {
     # Engine side
     'scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware': 100,
@@ -248,6 +248,7 @@ SPIDER_LOADER_CLASS = 'scrapy.spiderloader.SpiderLoader'
 SPIDER_LOADER_WARN_ONLY = False
 
 SPIDER_MIDDLEWARES = {}
+
 
 SPIDER_MIDDLEWARES_BASE = {
     # Engine side

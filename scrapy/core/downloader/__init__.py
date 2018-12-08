@@ -15,7 +15,9 @@ from scrapy import signals
 from .middleware import DownloaderMiddlewareManager
 from .handlers import DownloadHandlers
 
-
+"""
+用于控制requuest下载请求,还能控制访问的域名并发度,下载延迟控制,随机延迟等,主要是爬虫避免被封
+"""
 class Slot(object):
     """Downloader slot"""
 
@@ -57,7 +59,9 @@ class Slot(object):
             )
         )
 
-
+"""
+通过setting配置来获取延迟信息
+"""
 def _get_concurrency_delay(concurrency, spider, settings):
     delay = settings.getfloat('DOWNLOAD_DELAY')
     if hasattr(spider, 'DOWNLOAD_DELAY'):
@@ -72,23 +76,28 @@ def _get_concurrency_delay(concurrency, spider, settings):
 
     return concurrency, delay
 
-
+"""
+默认的下载器
+"""
 class Downloader(object):
 
     def __init__(self, crawler):
         self.settings = crawler.settings
         self.signals = crawler.signals
-        self.slots = {}
-        self.active = set()
-        self.handlers = DownloadHandlers(crawler)
+        self.slots = {}#作用是控制slot对象
+        self.active = set() # 记录当前正在下载的request集合
+        self.handlers = DownloadHandlers(crawler)# 控制许多个handler,不同的下载协议进行不同的handlers,默认支持了file;http;https;s3;ftp
         self.total_concurrency = self.settings.getint('CONCURRENT_REQUESTS')
         self.domain_concurrency = self.settings.getint('CONCURRENT_REQUESTS_PER_DOMAIN')
         self.ip_concurrency = self.settings.getint('CONCURRENT_REQUESTS_PER_IP')
-        self.randomize_delay = self.settings.getbool('RANDOMIZE_DOWNLOAD_DELAY')
-        self.middleware = DownloaderMiddlewareManager.from_crawler(crawler)
+        self.randomize_delay = self.settings.getbool('RANDOMIZE_DOWNLOAD_DELAY')# 随机延迟
+        self.middleware = DownloaderMiddlewareManager.from_crawler(crawler)# 中间件管理器,用于管理各个下载器中间件
         self._slot_gc_loop = task.LoopingCall(self._slot_gc)
         self._slot_gc_loop.start(60)
 
+    """
+    核心方法,用于获取下载的结果
+    """
     def fetch(self, request, spider):
         def _deactivate(response):
             self.active.remove(request)
@@ -101,12 +110,15 @@ class Downloader(object):
     def needs_backout(self):
         return len(self.active) >= self.total_concurrency
 
+    """
+    根据request和spiderhuoquu对应的slot
+    """
     def _get_slot(self, request, spider):
         key = self._get_slot_key(request, spider)
         if key not in self.slots:
             conc = self.ip_concurrency if self.ip_concurrency else self.domain_concurrency
             conc, delay = _get_concurrency_delay(conc, spider, self.settings)
-            self.slots[key] = Slot(conc, delay, self.randomize_delay)
+            self.slots[key] = Slot(conc, delay, self.randomize_delay)#三个参数:并发度,延迟时间,随机延迟
 
         return key, self.slots[key]
 
@@ -191,9 +203,15 @@ class Downloader(object):
         self._slot_gc_loop.stop()
         for slot in six.itervalues(self.slots):
             slot.close()
-
+    # 当本域名内的request已经爬取玩了,可以清除slots中的缓存,,通过这个函数来进行垃圾回收,清除缓存
+    # 如果某个slot不活跃,且距离上次活动的时间已经超过啦默认的60秒,就进行回收,pop掉并且.close()
     def _slot_gc(self, age=60):
         mintime = time() - age
         for key, slot in list(self.slots.items()):
             if not slot.active and slot.lastseen + slot.delay < mintime:
                 self.slots.pop(key).close()
+
+
+
+
+

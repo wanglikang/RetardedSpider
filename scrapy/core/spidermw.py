@@ -23,6 +23,7 @@ class SpiderMiddlewareManager(MiddlewareManager):
         return build_component_list(settings.getwithbase('SPIDER_MIDDLEWARES'))
 
     """
+    先通过在总的中间件管理器添加中间件:调用父类的_add_middleware
     每个spider中间件可以重写4个方法,本spiderMiddlewareManager可以对它们进行管理
     process_spider_input:对spiderd的输入进行处理
     process_spider_output::对spider的输出进行处理
@@ -40,6 +41,12 @@ class SpiderMiddlewareManager(MiddlewareManager):
         if hasattr(mw, 'process_start_requests'):
             self.methods['process_start_requests'].insert(0, mw.process_start_requests)
 
+    """
+    scrape_response首先依次调用中间件的process_spider_input，然后调用传递进来的scrap_func，也就是call_spider方法，
+    如果某个中间件的'process_spider_input'方法抛出了异常，则以Failure调用call_spider方法。
+    如果所有中间件都处理成功，且call_spider也返回成功，则调用'process_spider_output'方法，
+    这个方法依次调用中间件的'process_spider_output'方法。
+    """
     def scrape_response(self, scrape_func, response, request, spider):
         fname = lambda f:'%s.%s' % (
                 six.get_method_self(f).__class__.__name__,
